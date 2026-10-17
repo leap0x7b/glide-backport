@@ -8,7 +8,6 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.util.DisplayMetrics;
 import android.view.Gravity;
 
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
@@ -36,14 +35,42 @@ public class GlideBitmapDrawable extends GlideDrawable {
         this.state = state;
         final int targetDensity;
         if (res != null) {
-            final int density = res.getDisplayMetrics().densityDpi;
-            targetDensity = density == 0 ? DisplayMetrics.DENSITY_DEFAULT : density;
+            targetDensity = getDensityDpi(res);
             state.targetDensity = targetDensity;
         } else {
             targetDensity = state.targetDensity;
         }
-        width = state.bitmap.getScaledWidth(targetDensity);
-        height = state.bitmap.getScaledHeight(targetDensity);
+        width = getScaledWidth(state.bitmap, targetDensity);
+        height = getScaledHeight(state.bitmap, targetDensity);
+    }
+
+    // DisplayMetrics.densityDpi and DENSITY_DEFAULT require API 4. Fall back to 160 (mdpi).
+    private static int getDensityDpi(Resources res) {
+        try {
+            final int density = res.getDisplayMetrics().densityDpi;
+            return density == 0 ? 160 : density;
+        } catch (NoSuchFieldError e) {
+            return 160;
+        } catch (Exception e) {
+            return 160;
+        }
+    }
+
+    // Bitmap.getScaledWidth/Height() require API 4. Fall back to getWidth()/getHeight() on API 1-3.
+    private static int getScaledWidth(Bitmap bitmap, int targetDensity) {
+        try {
+            return bitmap.getScaledWidth(targetDensity);
+        } catch (NoSuchMethodError e) {
+            return bitmap.getWidth();
+        }
+    }
+
+    private static int getScaledHeight(Bitmap bitmap, int targetDensity) {
+        try {
+            return bitmap.getScaledHeight(targetDensity);
+        } catch (NoSuchMethodError e) {
+            return bitmap.getHeight();
+        }
     }
 
     @Override
@@ -119,7 +146,14 @@ public class GlideBitmapDrawable extends GlideDrawable {
     @Override
     public int getOpacity() {
         Bitmap bm = state.bitmap;
-        return bm == null || bm.hasAlpha() || state.paint.getAlpha() < 255
+        // Bitmap.hasAlpha() requires API 12; assume translucency on API 1-11 to be safe.
+        boolean hasAlpha;
+        try {
+            hasAlpha = bm == null || bm.hasAlpha();
+        } catch (NoSuchMethodError e) {
+            hasAlpha = true;
+        }
+        return hasAlpha || state.paint.getAlpha() < 255
                 ? PixelFormat.TRANSLUCENT : PixelFormat.OPAQUE;
     }
 

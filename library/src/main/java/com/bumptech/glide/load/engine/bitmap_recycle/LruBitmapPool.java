@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.os.Build;
 import android.util.Log;
 
+import com.bumptech.glide.util.ApiCompat;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -137,8 +139,14 @@ public class LruBitmapPool implements BitmapPool {
             hits++;
             currentSize -= strategy.getSize(result);
             tracker.remove(result);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-                result.setHasAlpha(true);
+            // setHasAlpha() requires API 12. Pool is only used on API 11+ anyway (see GlideBuilder),
+            // and harmless to skip on API 1-11.
+            if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB_MR1)) {
+                try {
+                    result.setHasAlpha(true);
+                } catch (NoSuchMethodError ignored) {
+                    // API 1-11: no setHasAlpha().
+                }
             }
         }
         if (Log.isLoggable(TAG, Log.VERBOSE)) {
@@ -163,9 +171,11 @@ public class LruBitmapPool implements BitmapPool {
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "trimMemory, level=" + level);
         }
-        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+        // ComponentCallbacks2 (API 14) constants are inlined: 60 == TRIM_MEMORY_MODERATE,
+        // 40 == TRIM_MEMORY_BACKGROUND. Avoid loading that class on API 1-13.
+        if (level >= 60) {
             clearMemory();
-        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
+        } else if (level >= 40) {
             trimToSize(maxSize / 2);
         }
     }
@@ -212,7 +222,8 @@ public class LruBitmapPool implements BitmapPool {
 
     private static LruPoolStrategy getDefaultStrategy() {
         final LruPoolStrategy strategy;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        // SizeConfigStrategy uses Bitmap.reconfigure() (API 19). AttributeStrategy works on API 1+.
+        if (ApiCompat.isAtLeast(ApiCompat.KITKAT)) {
             strategy = new SizeConfigStrategy();
         } else {
             strategy = new AttributeStrategy();
@@ -223,7 +234,8 @@ public class LruBitmapPool implements BitmapPool {
     private static Set<Bitmap.Config> getDefaultAllowedConfigs() {
         Set<Bitmap.Config> configs = new HashSet<Bitmap.Config>();
         configs.addAll(Arrays.asList(Bitmap.Config.values()));
-        if (Build.VERSION.SDK_INT >= 19) {
+        // Hidden null config only occurs on API 19+. Avoid SDK_INT field (missing on API 1-3).
+        if (ApiCompat.isAtLeast(ApiCompat.KITKAT)) {
             configs.add(null);
         }
         return Collections.unmodifiableSet(configs);

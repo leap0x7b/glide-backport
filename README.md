@@ -28,6 +28,8 @@ repositories {
 
 dependencies {
     compile 'com.github.bumptech.glide:glide:3.8.0'
+    // Required on the compile classpath by Glide.with(...); use 'provided' instead if you don't
+    // need the Fragment/FragmentActivity lifecycle APIs at runtime.
     compile 'com.android.support:support-v4:19.1.0'
 }
 ```
@@ -112,7 +114,34 @@ For instructions on including either the OkHttp or the Volley integration librar
 
 Android SDK Version
 -------------------
-Glide requires a minimum sdk version of 10.
+Glide supports Android 1.0 (API 1) and up. Core image loading, memory/disk caching and GIF
+decoding work on API 1. Platform features unavailable on old releases degrade gracefully:
+
+* Bitmap pooling (`inBitmap`, API 11+) is a no-op on API 1-10 (`BitmapPoolAdapter`).
+* `SizeConfigStrategy`/`Bitmap.reconfigure()` (API 19+) is only used on KitKat+; older devices use
+  `AttributeStrategy`.
+* Video thumbnails (`MediaMetadataRetriever`, API 10+) throw `IOException` on API 1-9.
+* EXIF orientation (`ExifInterface`, API 5+) defaults to undefined on API 1-4.
+* Contact photos (`ContactsContract`, API 5+) fall back to `ContentResolver.openInputStream()`.
+* Lifecycle fragments (native API 11+, support library API 4+) fall back to the application-level
+  `RequestManager` when unavailable; `Activity.isDestroyed()` (API 17+) is a no-op below API 17.
+* `ActivityManager.getMemoryClass()` (API 5+) defaults to 16MB, `isLowRamDevice()` (API 19+)
+  defaults to low-memory below KitKat.
+
+Note: the `library` module declares support-v4 as a compile-only (`provided`) dependency, so Glide
+no longer pulls it in transitively or bundles it. You still need support-v4 on your compile
+classpath when calling any `Glide.with(...)` overload, because those overloads reference
+`Fragment`/`FragmentActivity` types; add it yourself if it isn't already there:
+
+```groovy
+compile 'com.android.support:support-v4:19.1.0'
+```
+
+Apps that don't need the fragment lifecycle APIs at runtime (for example, API 1-3 targets where
+`support-v4:19.1.0` itself cannot run) can declare it `provided` instead. Without support-v4 at
+runtime, support-library checks are skipped and the retriever uses native fragments where
+available, falling back to the application-level `RequestManager` and catching `LinkageError` for
+anything else.
 
 License
 -------

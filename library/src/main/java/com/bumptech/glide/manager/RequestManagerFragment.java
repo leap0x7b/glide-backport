@@ -8,6 +8,7 @@ import android.os.Build;
 import android.util.Log;
 
 import com.bumptech.glide.RequestManager;
+import com.bumptech.glide.util.ApiCompat;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -84,7 +85,7 @@ public class RequestManagerFragment extends Fragment {
     public Set<RequestManagerFragment> getDescendantRequestManagerFragments() {
         if (rootRequestManagerFragment == this) {
             return Collections.unmodifiableSet(childRequestManagerFragments);
-        } else if (rootRequestManagerFragment == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+        } else if (rootRequestManagerFragment == null || !ApiCompat.isAtLeast(ApiCompat.JELLY_BEAN_MR1)) {
             // Pre JB MR1 doesn't allow us to get the parent fragment so we can't introspect hierarchy, so just
             // return an empty set.
             return Collections.emptySet();

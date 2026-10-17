@@ -21,6 +21,9 @@ android {
 dependencies {
     compile project(':library')
     compile 'com.caverock:androidsvg:1.2.1'
+    // Glide's with(...) overloads reference support-v4 types, so it must be on the compile
+    // classpath even though the library no longer pulls it in transitively.
+    compile "com.android.support:support-v4:${SUPPORT_V4_VERSION}"
 }
 
 task run(type: Exec, dependsOn: 'installDebug') {

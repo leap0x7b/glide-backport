@@ -12,6 +12,7 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 
 import com.bumptech.glide.request.Request;
+import com.bumptech.glide.util.ApiCompat;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -262,7 +263,8 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
             }
             WindowManager windowManager = (WindowManager) view.getContext().getSystemService(Context.WINDOW_SERVICE);
             Display display = windowManager.getDefaultDisplay();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            // getSize(Point) requires API 13; getWidth()/getHeight() exist since API 1.
+            if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB_MR2)) {
                 displayDimens = new Point();
                 display.getSize(displayDimens);
             } else {

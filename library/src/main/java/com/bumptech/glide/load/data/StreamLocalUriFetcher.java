@@ -1,15 +1,13 @@
 package com.bumptech.glide.load.data;
 
-import static android.os.Build.VERSION.SDK_INT;
-import static android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH;
-
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.net.Uri;
 import android.os.Build;
-import android.provider.ContactsContract;
+
+import com.bumptech.glide.util.ApiCompat;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,15 +30,26 @@ public class StreamLocalUriFetcher extends LocalUriFetcher<InputStream> {
     private static final int ID_DISPLAY_PHOTO = 4;
 
 
-    private static final UriMatcher URI_MATCHER;
+    private static volatile UriMatcher uriMatcher;
 
-    static {
-        URI_MATCHER = new UriMatcher(UriMatcher.NO_MATCH);
-        URI_MATCHER.addURI(ContactsContract.AUTHORITY, "contacts/lookup/*/#", ID_LOOKUP);
-        URI_MATCHER.addURI(ContactsContract.AUTHORITY, "contacts/lookup/*", ID_LOOKUP);
-        URI_MATCHER.addURI(ContactsContract.AUTHORITY, "contacts/#/photo", ID_THUMBNAIL);
-        URI_MATCHER.addURI(ContactsContract.AUTHORITY, "contacts/#", ID_CONTACT);
-        URI_MATCHER.addURI(ContactsContract.AUTHORITY, "contacts/#/display_photo", ID_DISPLAY_PHOTO);
+    private static UriMatcher getUriMatcher() {
+        // Lazy + reflection: ContactsContract (API 5+) doesn't exist on API 1-4. Building the
+        // matcher eagerly in <clinit> would throw NoClassDefFoundError on those devices.
+        if (uriMatcher == null) {
+            synchronized (StreamLocalUriFetcher.class) {
+                if (uriMatcher == null) {
+                    String authority = ContactsCompat.getAuthority();
+                    UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
+                    matcher.addURI(authority, "contacts/lookup/*/#", ID_LOOKUP);
+                    matcher.addURI(authority, "contacts/lookup/*", ID_LOOKUP);
+                    matcher.addURI(authority, "contacts/#/photo", ID_THUMBNAIL);
+                    matcher.addURI(authority, "contacts/#", ID_CONTACT);
+                    matcher.addURI(authority, "contacts/#/display_photo", ID_DISPLAY_PHOTO);
+                    uriMatcher = matcher;
+                }
+            }
+        }
+        return uriMatcher;
     }
 
     public StreamLocalUriFetcher(Context context, Uri uri) {
@@ -49,7 +58,7 @@ public class StreamLocalUriFetcher extends LocalUriFetcher<InputStream> {
 
     @Override
     protected InputStream loadResource(Uri uri, ContentResolver contentResolver) throws FileNotFoundException {
-        final int matchedUri  = URI_MATCHER.match(uri);
+        final int matchedUri = getUriMatcher().match(uri);
         return loadResourceFromUri(uri, contentResolver, matchedUri);
     }
 
@@ -65,12 +74,17 @@ public class StreamLocalUriFetcher extends LocalUriFetcher<InputStream> {
             case ID_CONTACT:
                 // If it was a Lookup uri then resolve it first, then continue loading the contact uri.
                 if (matchedUri == ID_LOOKUP) {
-                    uri = ContactsContract.Contacts.lookupContact(contentResolver, uri);
+                    uri = ContactsCompat.lookupContact(contentResolver, uri);
                     if (uri == null) {
                         throw new FileNotFoundException("Contact cannot be found");
                     }
                 }
-                return openContactPhotoInputStream(contentResolver, uri);
+                InputStream photo = openContactPhotoInputStream(contentResolver, uri);
+                // On API 1-4 ContactsContract doesn't exist; fall back to a generic stream.
+                if (photo != null) {
+                    return photo;
+                }
+                return contentResolver.openInputStream(uri);
             case ID_THUMBNAIL:
             case ID_DISPLAY_PHOTO:
             case UriMatcher.NO_MATCH:
@@ -81,11 +95,9 @@ public class StreamLocalUriFetcher extends LocalUriFetcher<InputStream> {
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private InputStream openContactPhotoInputStream(ContentResolver contentResolver, Uri contactUri) {
-        if (SDK_INT < ICE_CREAM_SANDWICH) {
-            return ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, contactUri);
-        } else {
-            return ContactsContract.Contacts.openContactPhotoInputStream(contentResolver, contactUri,
-                    true /*preferHighres*/);
-        }
+        // openContactPhotoInputStream(uri, true) requires API 14; 2-arg version requires API 5.
+        // ContactsCompat returns null on API 1-4 so callers can fall back to openInputStream().
+        boolean preferHighres = ApiCompat.isAtLeast(ApiCompat.ICE_CREAM_SANDWICH);
+        return ContactsCompat.openContactPhotoInputStream(contentResolver, contactUri, preferHighres);
     }
 }

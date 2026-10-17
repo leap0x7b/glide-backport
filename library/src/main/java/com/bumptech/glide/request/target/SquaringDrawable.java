@@ -80,7 +80,13 @@ public class SquaringDrawable extends GlideDrawable {
     @TargetApi(Build.VERSION_CODES.KITKAT)
     @Override
     public int getAlpha() {
-        return wrapped.getAlpha();
+        // Drawable.getAlpha() requires API 19. Default to opaque on API 1-18 where the call
+        // would throw NoSuchMethodError.
+        try {
+            return wrapped.getAlpha();
+        } catch (NoSuchMethodError e) {
+            return 255;
+        }
     }
 
     @Override

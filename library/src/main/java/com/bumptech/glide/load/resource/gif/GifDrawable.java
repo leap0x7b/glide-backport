@@ -20,6 +20,7 @@ import com.bumptech.glide.gifdecoder.GifHeader;
 import com.bumptech.glide.load.Transformation;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.util.ApiCompat;
 
 /**
  * An animated {@link android.graphics.drawable.Drawable} that plays the frames of an animated GIF.
@@ -160,7 +161,7 @@ public class GifDrawable extends GlideDrawable implements GifFrameLoader.FrameCa
         // we can use the absence of a callback as an indication that it's ok to clear our temporary data. Prior to
         // honeycomb we can't tell if our callback is null and instead eagerly reset to avoid holding on to resources we
         // no longer need.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+        if (!ApiCompat.isAtLeast(ApiCompat.HONEYCOMB)) {
             reset();
         }
     }
@@ -261,7 +262,9 @@ public class GifDrawable extends GlideDrawable implements GifFrameLoader.FrameCa
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     @Override
     public void onFrameReady(int frameIndex) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && getCallback() == null) {
+        // Drawable.getCallback() exists since API 1, but ImageView only clears it reliably on API 11+.
+        // Eagerly reset on API 1-10 (see stop() above); on API 11+ a null callback means detached.
+        if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB) && getCallback() == null) {
             stop();
             reset();
             return;

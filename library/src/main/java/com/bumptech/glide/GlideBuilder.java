@@ -1,7 +1,6 @@
 package com.bumptech.glide;
 
 import android.content.Context;
-import android.os.Build;
 
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.engine.Engine;
@@ -14,6 +13,7 @@ import com.bumptech.glide.load.engine.cache.LruResourceCache;
 import com.bumptech.glide.load.engine.cache.MemoryCache;
 import com.bumptech.glide.load.engine.cache.MemorySizeCalculator;
 import com.bumptech.glide.load.engine.executor.FifoPriorityThreadPoolExecutor;
+import com.bumptech.glide.util.ApiCompat;
 
 import java.util.concurrent.ExecutorService;
 
@@ -176,7 +176,9 @@ public class GlideBuilder {
 
         MemorySizeCalculator calculator = new MemorySizeCalculator(context);
         if (bitmapPool == null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            // Bitmap pooling via inBitmap requires API 11 (Honeycomb). On API 1-10 fall back to a
+            // no-op pool. ApiCompat avoids touching Build.VERSION.SDK_INT (API 4+) on API 1-3.
+            if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB)) {
                 int size = calculator.getBitmapPoolSize();
                 bitmapPool = new LruBitmapPool(size);
             } else {

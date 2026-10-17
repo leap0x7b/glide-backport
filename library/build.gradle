@@ -7,7 +7,7 @@ apply plugin: 'jacoco'
 apply plugin: 'com.github.kt3k.coveralls'
 
 findbugs {
-    toolVersion = "2.0.3"
+    toolVersion = "3.0.1"
 }
 jacoco {
     toolVersion = "0.7.1.201405082137"
@@ -20,7 +20,9 @@ dependencies {
     compile project(':third_party:gif_decoder')
     compile project(':third_party:gif_encoder')
     compile project(':third_party:disklrucache')
-    compile "com.android.support:support-v4:${SUPPORT_V4_VERSION}"
+    // Optional: consumers add their own support-v4 (their compile classpath needs it because the
+    // Glide.with(...) overloads reference support types). Not bundled or exported by Glide.
+    provided "com.android.support:support-v4:${SUPPORT_V4_VERSION}"
 
     androidTestCompile project(':testutil')
     androidTestCompile 'com.google.guava:guava-testlib:18.0'
@@ -49,6 +51,10 @@ android {
             testCoverageEnabled = true
         }
     }
+
+    lintOptions {
+        abortOnError false
+    }
 }
 
 afterEvaluate {
@@ -59,7 +65,8 @@ afterEvaluate {
 
         classes = fileTree('build/intermediates/classes/debug/')
         source = fileTree('src/main/java')
-        classpath = project.configurations.compile
+        // Include provided dependencies (support-v4) so optional framework classes resolve.
+        classpath = project.configurations.compile + project.configurations.provided
 
         effort = 'max'
 

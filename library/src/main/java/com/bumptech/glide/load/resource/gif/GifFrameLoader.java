@@ -33,6 +33,8 @@ class GifFrameLoader {
     private boolean isLoadPending = false;
     private GenericRequestBuilder<GifDecoder, GifDecoder, Bitmap, Bitmap> requestBuilder;
     private DelayTarget current;
+    // The frame request that is currently in flight, if any.
+    private DelayTarget pending;
     private boolean isCleared;
 
     public interface FrameCallback {
@@ -83,8 +85,12 @@ class GifFrameLoader {
             Glide.clear(current);
             current = null;
         }
+        // A frame that was still being decoded when the loader was cleared would
+        // otherwise leave isLoadPending set forever, so start() could never load
+        // frames again (happens on API < 11, where stop() eagerly clears).
+        pending = null;
+        isLoadPending = false;
         isCleared = true;
-        // test.
     }
 
     public Bitmap getCurrentFrame() {
@@ -100,6 +106,7 @@ class GifFrameLoader {
         long targetTime = SystemClock.uptimeMillis() + gifDecoder.getNextDelay();
         gifDecoder.advance();
         DelayTarget next = new DelayTarget(handler, gifDecoder.getCurrentFrameIndex(), targetTime);
+        pending = next;
         requestBuilder
                 .signature(new FrameSignature())
                 .into(next);
@@ -107,6 +114,14 @@ class GifFrameLoader {
 
     // Visible for testing.
     void onFrameReady(DelayTarget delayTarget) {
+        // Ignore frames whose request was still pending when the loader was
+        // cleared, so they don't restart the frame loop.
+        if (delayTarget != pending) {
+            handler.obtainMessage(FrameLoaderCallback.MSG_CLEAR, delayTarget).sendToTarget();
+            return;
+        }
+        pending = null;
+
         if (isCleared) {
             handler.obtainMessage(FrameLoaderCallback.MSG_CLEAR, delayTarget).sendToTarget();
             return;

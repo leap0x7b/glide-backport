@@ -7,9 +7,9 @@ import android.os.Looper;
 
 import com.bumptech.glide.request.target.Target;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
@@ -75,7 +75,7 @@ public final class Util {
      */
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public static int getBitmapByteSize(Bitmap bitmap) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (ApiCompat.isAtLeast(ApiCompat.KITKAT)) {
             // Workaround for KitKat initial release NPE in Bitmap, fixed in MR1. See issue #148.
             try {
                 return bitmap.getAllocationByteCount();
@@ -163,7 +163,9 @@ public final class Util {
      * Returns a {@link java.util.Queue} of the given size using Glide's preferred implementation.
      */
     public static <T> Queue<T> createQueue(int size) {
-        return new ArrayDeque<T>(size);
+        // ArrayDeque was only added in API 9 (Gingerbread). LinkedList exists since API 1 and
+        // implements Queue with the same semantics for our poll/offer usage.
+        return new LinkedList<T>();
     }
 
     /**

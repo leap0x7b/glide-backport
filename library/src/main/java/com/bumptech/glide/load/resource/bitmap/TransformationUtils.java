@@ -11,6 +11,7 @@ import android.os.Build;
 import android.util.Log;
 
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
+import com.bumptech.glide.util.ApiCompat;
 
 /**
  * A class with methods to efficiently resize Bitmaps.
@@ -140,7 +141,8 @@ public final class TransformationUtils {
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     public static void setAlpha(Bitmap toTransform, Bitmap outBitmap) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1 && outBitmap != null) {
+        // Bitmap.setHasAlpha()/hasAlpha() require API 12. No-op on API 1-11.
+        if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB_MR1) && outBitmap != null) {
             outBitmap.setHasAlpha(toTransform.hasAlpha());
         }
     }
@@ -158,8 +160,8 @@ public final class TransformationUtils {
     public static int getOrientation(String pathToOriginal) {
         int degreesToRotate = 0;
         try {
-            ExifInterface exif = new ExifInterface(pathToOriginal);
-            int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED);
+            // ExifInterface requires API 5; ExifCompat falls back to UNDEFINED on API 1-4.
+            int orientation = ExifCompat.getOrientation(pathToOriginal);
             return getExifOrientationDegrees(orientation);
         } catch (Exception e) {
             if (Log.isLoggable(TAG, Log.ERROR)) {

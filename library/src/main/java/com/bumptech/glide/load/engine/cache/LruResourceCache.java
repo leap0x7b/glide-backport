@@ -41,11 +41,13 @@ public class LruResourceCache extends LruCache<Key, Resource<?>> implements Memo
     @SuppressLint("InlinedApi")
     @Override
     public void trimMemory(int level) {
-        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_MODERATE) {
+        // ComponentCallbacks2 requires API 14; use inlined values (60/40) to avoid loading that
+        // class on API 1-13.
+        if (level >= 60) {
             // Nearing middle of list of cached background apps
             // Evict our entire bitmap cache
             clearMemory();
-        } else if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND) {
+        } else if (level >= 40) {
             // Entering list of cached background apps
             // Evict oldest half of our bitmap cache
             trimToSize(getCurrentSize() / 2);

@@ -9,6 +9,7 @@ import android.util.Log;
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.util.ApiCompat;
 import com.bumptech.glide.util.ByteArrayPool;
 import com.bumptech.glide.util.ExceptionCatchingInputStream;
 import com.bumptech.glide.util.MarkEnforcingInputStream;
@@ -211,7 +212,7 @@ public abstract class Downsampler implements BitmapDecoder<InputStream> {
         Bitmap.Config config = getConfig(is, decodeFormat);
         options.inSampleSize = sampleSize;
         options.inPreferredConfig = config;
-        if ((options.inSampleSize == 1 || Build.VERSION_CODES.KITKAT <= Build.VERSION.SDK_INT) && shouldUsePool(is)) {
+        if ((options.inSampleSize == 1 || ApiCompat.isAtLeast(ApiCompat.KITKAT)) && shouldUsePool(is)) {
             int targetWidth = (int) Math.ceil(inWidth / (double) sampleSize);
             int targetHeight = (int) Math.ceil(inHeight / (double) sampleSize);
             // BitmapFactory will clear out the Bitmap before writing to it, so getDirty is safe.
@@ -222,7 +223,7 @@ public abstract class Downsampler implements BitmapDecoder<InputStream> {
 
     private static boolean shouldUsePool(InputStream is) {
         // On KitKat+, any bitmap can be used to decode any other bitmap.
-        if (Build.VERSION_CODES.KITKAT <= Build.VERSION.SDK_INT) {
+        if (ApiCompat.isAtLeast(ApiCompat.KITKAT)) {
             return true;
         }
 
@@ -252,7 +253,7 @@ public abstract class Downsampler implements BitmapDecoder<InputStream> {
     private static Bitmap.Config getConfig(InputStream is, DecodeFormat format) {
         // Changing configs can cause skewing on 4.1, see issue #128.
         if (format == DecodeFormat.ALWAYS_ARGB_8888 || format == DecodeFormat.PREFER_ARGB_8888
-                || Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN) {
+                || ApiCompat.getSdkInt() == ApiCompat.JELLY_BEAN) {
             return Bitmap.Config.ARGB_8888;
         }
 
@@ -344,7 +345,8 @@ public abstract class Downsampler implements BitmapDecoder<InputStream> {
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     private static void setInBitmap(BitmapFactory.Options options, Bitmap recycled) {
-        if (Build.VERSION_CODES.HONEYCOMB <= Build.VERSION.SDK_INT) {
+        // inBitmap requires API 11. No-op on API 1-10 (pool returns bitmaps but decoder ignores them).
+        if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB)) {
             options.inBitmap = recycled;
         }
     }
@@ -382,7 +384,8 @@ public abstract class Downsampler implements BitmapDecoder<InputStream> {
         decodeBitmapOptions.outHeight = 0;
         decodeBitmapOptions.outMimeType = null;
 
-        if (Build.VERSION_CODES.HONEYCOMB <= Build.VERSION.SDK_INT)  {
+        // inBitmap/inMutable require API 11. Leave defaults on API 1-10.
+        if (ApiCompat.isAtLeast(ApiCompat.HONEYCOMB))  {
             decodeBitmapOptions.inBitmap = null;
             decodeBitmapOptions.inMutable = true;
         }

@@ -2,8 +2,8 @@ package com.bumptech.glide.load.engine.cache;
 
 import com.bumptech.glide.load.Key;
 
-import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.locks.Lock;
@@ -67,7 +67,8 @@ final class DiskCacheWriteLocker {
 
     private static class WriteLockPool {
         private static final int MAX_POOL_SIZE = 10;
-        private final Queue<WriteLock> pool = new ArrayDeque<WriteLock>();
+        // LinkedList instead of ArrayDeque: ArrayDeque requires API 9, LinkedList works on API 1.
+        private final Queue<WriteLock> pool = new LinkedList<WriteLock>();
 
         WriteLock obtain() {
             WriteLock result;

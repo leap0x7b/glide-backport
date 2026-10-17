@@ -130,7 +130,7 @@ public class MemorySizeCalculatorTest {
         public MemorySizeCalculator getCalculator() {
             when(screenDimensions.getWidthPixels()).thenReturn(pixelSize);
             when(screenDimensions.getHeightPixels()).thenReturn(pixelSize);
-            return new MemorySizeCalculator(Robolectric.application, activityManager, screenDimensions);
+            return new MemorySizeCalculator(activityManager, screenDimensions);
         }
 
         public int getScreenSize() {

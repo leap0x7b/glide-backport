@@ -26,7 +26,6 @@ package com.bumptech.glide.gifdecoder;
 
 import android.annotation.TargetApi;
 import android.graphics.Bitmap;
-import android.os.Build;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -763,8 +762,23 @@ public class GifDecoder {
 
     @TargetApi(12)
     private static void setAlpha(Bitmap bitmap) {
-        if (Build.VERSION.SDK_INT >= 12) {
-            bitmap.setHasAlpha(true);
+        // Bitmap.setHasAlpha() requires API 12. Best-effort on API 1-11: try and ignore failure.
+        try {
+            // Direct SDK_INT access would throw NoSuchFieldError on API 1-3; use reflection-free
+            // guarded call instead. The try/catch keeps this safe all the way back to API 1.
+            Class<?> versionClass = Class.forName("android.os.Build$VERSION");
+            int sdk = versionClass.getField("SDK_INT").getInt(null);
+            if (sdk >= 12) {
+                bitmap.setHasAlpha(true);
+            }
+        } catch (ClassNotFoundException e) {
+            // Pre-API-4 runtime without SDK_INT field: skip.
+        } catch (NoSuchFieldException e) {
+            // API 1-3: SDK_INT doesn't exist, skip.
+        } catch (NoSuchMethodError e) {
+            // API 1-11: setHasAlpha() doesn't exist, skip.
+        } catch (Exception e) {
+            // Any other reflection failure: skip, GIF still decodes (may lack explicit alpha flag).
         }
     }
 }

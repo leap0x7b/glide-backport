@@ -177,15 +177,16 @@ public class GenericLoaderFactory {
         }
 
         if (result == null) {
-            for (Class<? super T> registeredModelClass : modelClassToResourceFactories.keySet()) {
+            for (Map.Entry<Class, Map<Class, ModelLoaderFactory>> entry
+                    : modelClassToResourceFactories.entrySet()) {
                 // This accounts for model subclasses, our map only works for exact matches. We should however still
                 // match a subclass of a model with a factory for a super class of that model if if there isn't a
                 // factory for that particular subclass. Uris are a great example of when this happens, most uris
                 // are actually subclasses for Uri, but we'd generally rather load them all with the same factory rather
                 // than trying to register for each subclass individually.
+                Class<? super T> registeredModelClass = entry.getKey();
                 if (registeredModelClass.isAssignableFrom(modelClass)) {
-                    Map<Class/*Y*/, ModelLoaderFactory/*T, Y*/> currentResourceToFactories =
-                            modelClassToResourceFactories.get(registeredModelClass);
+                    Map<Class/*Y*/, ModelLoaderFactory/*T, Y*/> currentResourceToFactories = entry.getValue();
                     if (currentResourceToFactories != null) {
                         result = currentResourceToFactories.get(resourceClass);
                         if (result != null) {

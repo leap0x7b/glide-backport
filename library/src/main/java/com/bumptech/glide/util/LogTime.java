@@ -9,7 +9,7 @@ import android.os.SystemClock;
  */
 public final class LogTime {
     private static final double MILLIS_MULTIPLIER =
-            Build.VERSION_CODES.JELLY_BEAN_MR1 <= Build.VERSION.SDK_INT ? 1d / Math.pow(10, 6) : 1d;
+            ApiCompat.isAtLeast(ApiCompat.JELLY_BEAN_MR1) ? 1d / Math.pow(10, 6) : 1d;
 
     private LogTime() {
         // Utility class.
@@ -21,7 +21,7 @@ public final class LogTime {
      */
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     public static long getLogTime() {
-        if (Build.VERSION_CODES.JELLY_BEAN_MR1 <= Build.VERSION.SDK_INT) {
+        if (ApiCompat.isAtLeast(ApiCompat.JELLY_BEAN_MR1)) {
             return SystemClock.elapsedRealtimeNanos();
         } else {
             return System.currentTimeMillis();

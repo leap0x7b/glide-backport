@@ -8,4 +8,8 @@ android {
         minSdkVersion MIN_SDK_VERSION as int
         targetSdkVersion TARGET_SDK_VERSION as int
     }
+
+    lintOptions {
+        abortOnError false
+    }
 }

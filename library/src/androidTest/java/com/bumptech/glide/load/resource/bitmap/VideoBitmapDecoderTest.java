@@ -42,10 +42,14 @@ public class VideoBitmapDecoderTest {
         resource = mock(ParcelFileDescriptor.class);
         factory = mock(VideoBitmapDecoder.MediaMetadataRetrieverFactory.class);
         retriever = mock(MediaMetadataRetriever.class);
-        when(factory.build()).thenReturn(retriever);
+        try {
+            when(factory.build()).thenReturn(retriever);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         decoder = new VideoBitmapDecoder(new VideoBitmapDecoder.MediaMetadataRetrieverFactory() {
             @Override
-            public MediaMetadataRetriever build() {
+            public Object build() throws Exception {
                 return factory.build();
             }
         });
@@ -93,7 +97,7 @@ public class VideoBitmapDecoderTest {
         int frame = 5;
         decoder = new VideoBitmapDecoder(new VideoBitmapDecoder.MediaMetadataRetrieverFactory()  {
           @Override
-          public MediaMetadataRetriever build() {
+          public Object build() throws Exception {
             return factory.build();
           }
         }, frame);
@@ -109,7 +113,7 @@ public class VideoBitmapDecoderTest {
         throws IOException {
       decoder = new VideoBitmapDecoder(new VideoBitmapDecoder.MediaMetadataRetrieverFactory()  {
         @Override
-        public MediaMetadataRetriever build() {
+        public Object build() throws Exception {
           return factory.build();
         }
       });

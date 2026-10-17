@@ -35,7 +35,8 @@ class SizeStrategy implements LruPoolStrategy {
         final int size = Util.getBitmapByteSize(width, height, config);
         Key key = keyPool.get(size);
 
-        Integer possibleSize = sortedSizes.ceilingKey(size);
+        // TreeMap.ceilingKey() requires API 9; manual scan works on API 1.
+        Integer possibleSize = ceilingKey(sortedSizes, size);
         if (possibleSize != null && possibleSize != size && possibleSize <= size * MAX_SIZE_MULTIPLE) {
             keyPool.offer(key);
             key = keyPool.get(possibleSize);
@@ -68,6 +69,17 @@ class SizeStrategy implements LruPoolStrategy {
         } else {
             sortedSizes.put(size, current - 1);
         }
+    }
+
+    // API 1-compatible replacement for NavigableMap.ceilingKey() (API 9+). TreeMap.keySet() is
+    // sorted, so the first key >= size is the ceiling.
+    private static Integer ceilingKey(TreeMap<Integer, Integer> map, int size) {
+        for (Integer key : map.keySet()) {
+            if (key != null && key >= size) {
+                return key;
+            }
+        }
+        return null;
     }
 
     @Override

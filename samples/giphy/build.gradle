@@ -3,6 +3,9 @@ apply plugin: 'com.android.application'
 dependencies {
     compile project(':library')
     compile 'com.google.code.gson:gson:2.3'
+    // Glide's with(...) overloads reference support-v4 types, so it must be on the compile
+    // classpath even though the library no longer pulls it in transitively.
+    compile "com.android.support:support-v4:${SUPPORT_V4_VERSION}"
 }
 
 android {
