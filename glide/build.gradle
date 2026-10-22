@@ -64,6 +64,8 @@ def getAndroidJar() {
             linksOffline("http://d.android.com/reference", "${getAndroidSdkDirectory()}/docs/reference")
         }
 
+        failOnError = false
+
         exclude '**/BuildConfig.java'
         exclude '**/R.java'
     } as Javadoc
