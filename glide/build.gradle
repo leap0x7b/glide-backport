@@ -92,9 +92,11 @@ jar {
     from files(getInternalJavaProjects().collect { it.sourceSets.main.output })
 }
 
-getAllInternalProjects().each { project ->
-    jar.dependsOn(project.tasks.build)
-}
+// Only compile the classes that go into the all-in-one jar. Depending on the
+// full `build` task would also run tests, PMD, FindBugs and Checkstyle, which
+// are unrelated to publishing and are not reliable on JitPack's legacy image.
+jar.dependsOn(getAndroidLibraryVariants('release').collect { it.javaCompile })
+jar.dependsOn(getInternalJavaProjects().collect { it.tasks.getByName('jar') })
 
 artifacts {
     archives releaseJavadocJar {

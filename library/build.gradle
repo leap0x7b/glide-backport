@@ -1,6 +1,5 @@
 apply plugin: 'com.android.library'
 apply plugin: 'robolectric'
-apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'findbugs'
 apply plugin: 'pmd'
 apply plugin: 'jacoco'

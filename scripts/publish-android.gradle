@@ -1,0 +1,47 @@
+// Publishes an Android library as an AAR to the local Maven repository.
+// This keeps the old Gradle 2.2 / Android Gradle Plugin 1.0 build usable with
+// JitPack, which expects a publishToMavenLocal task.
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+
+            artifact("$buildDir/outputs/aar/${project.name}-release.aar") {
+                extension 'aar'
+            }
+
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+                configurations.compile.allDependencies.each { dep ->
+                    if (!(dep instanceof org.gradle.api.artifacts.ProjectDependency)) {
+                        return
+                    }
+
+                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                    dependencyNode.appendNode('groupId', dep.group)
+                    dependencyNode.appendNode('artifactId', dep.name)
+                    dependencyNode.appendNode('version', dep.version)
+
+                    // Project dependencies of an Android library are AARs, not JARs.
+                    def dependencyProject = dep.dependencyProject
+                    if (dependencyProject.plugins.hasPlugin('com.android.library') ||
+                            dependencyProject.plugins.hasPlugin('android-library')) {
+                        dependencyNode.appendNode('type', 'aar')
+                    }
+                    dependencyNode.appendNode('scope', 'compile')
+                }
+            }
+        }
+    }
+}
+
+// publishToMavenLocal does not know about Android's AAR task, so wire it up
+// explicitly. The AAR must exist before the publication is installed.
+tasks.matching { it.name == 'publishMavenPublicationToMavenLocal' }.all {
+    dependsOn 'bundleRelease'
+}

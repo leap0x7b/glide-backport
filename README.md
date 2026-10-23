@@ -34,6 +34,22 @@ dependencies {
 }
 ```
 
+Or, for this fork, use JitPack (replace `TAG` with a release tag or commit hash):
+
+```groovy
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // All-in-one JAR, equivalent to the regular Glide artifact.
+    compile 'com.github.leap0x7b.glide-backport:glide:TAG'
+
+    // Or depend on the library AAR; its third-party modules are resolved transitively.
+    // compile 'com.github.leap0x7b.glide-backport:library:TAG'
+}
+```
+
 Or Maven:
 
 ```xml

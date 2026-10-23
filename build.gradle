@@ -7,7 +7,6 @@ buildscript {
         classpath "org.robolectric:robolectric-gradle-plugin:0.14.0"
         classpath "com.android.tools.build:gradle:1.0.0"
         classpath "org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.0.1"
-        classpath "com.github.dcendents:android-maven-gradle-plugin:1.3"
     }
 }
 
@@ -16,9 +15,23 @@ subprojects { project ->
         jcenter()
     }
 
-    apply plugin: 'maven'
-    version = rootProject.VERSION_NAME
-    group = rootProject.GROUP
+    // JitPack publishes multi-module builds under com.github.<user>.<repo>.
+    // When the build is not running on JitPack, keep the project's original
+    // coordinates so normal dev builds and Sonatype releases are unchanged.
+    if (System.getenv('JITPACK') == 'true') {
+        version = System.getenv('VERSION') ?: rootProject.VERSION_NAME
+        group = "${System.getenv('GROUP')}.${System.getenv('ARTIFACT')}"
+    } else {
+        version = rootProject.VERSION_NAME
+        group = rootProject.GROUP
+    }
+
+    // The Android tools bundled with this old build (dx from build-tools 19)
+    // cannot read Java 8 class files. Keep the whole build on Java 6 bytecode.
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = '1.6'
+        targetCompatibility = '1.6'
+    }
 
     apply plugin: 'checkstyle'
 
@@ -51,6 +64,24 @@ subprojects { project ->
     }
 }
 
+// Modules that make up the published Glide artifacts. The third party
+// projects live beside a git submodule, so wire their publishing up here
+// rather than editing the submodule's build file.
+[
+        ':library',
+        ':glide',
+        ':third_party:disklrucache',
+        ':third_party:gif_decoder',
+        ':third_party:gif_encoder'
+].each { projectPath ->
+    project(projectPath).afterEvaluate { publishProject ->
+        if (publishProject.plugins.hasPlugin('com.android.library')) {
+            publishProject.apply from: new File(rootDir, 'scripts/publish-android.gradle')
+        } else if (publishProject.plugins.hasPlugin('java')) {
+            publishProject.apply from: new File(rootDir, 'scripts/publish-java.gradle')
+        }
+    }
+}
 task wrapper(type: Wrapper) {
     gradleVersion = '2.2'
 }

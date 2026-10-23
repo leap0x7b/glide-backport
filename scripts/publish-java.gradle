@@ -1,0 +1,16 @@
+// Publishes a Java module to the local Maven repository using the standard
+// Java software component. Used for the disk cache and the all-in-one Glide
+// module (whose JAR already bundles the Android library and third party code).
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+        }
+    }
+}

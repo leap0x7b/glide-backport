@@ -1,0 +1,12 @@
+jdk:
+  - openjdk8
+
+before_install:
+  # The current JitPack image does not include the 2014-era SDK components this
+  # build uses. Install them explicitly before Gradle configures the projects.
+  - if [ -x "$ANDROID_HOME/tools/bin/sdkmanager" ]; then SDKMANAGER="$ANDROID_HOME/tools/bin/sdkmanager"; elif command -v sdkmanager >/dev/null 2>&1; then SDKMANAGER=$(command -v sdkmanager); else SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"; fi; yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-19" "build-tools;19.1.0"
+
+install:
+  # maven-publish publishes the library AAR, its third party AAR/JAR
+  # dependencies, and the all-in-one Glide JAR to ~/.m2/repository.
+  - ./gradlew publishToMavenLocal
